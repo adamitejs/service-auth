@@ -1,0 +1,11 @@
+{
+  "name": "@adamite/service-auth",
+  "version": "0.1.0",
+  "description": "Adamite auth service.",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@adamite/relay": "https://github.com/adamitejs/relay.git",
+    "@adamite/sdk": "https://github.com/adamitejs/sdk.git"
+  }
+}
