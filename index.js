@@ -1,4 +1,4 @@
-const AuthService = require('./src/AuthService');
+const AuthService = require("./src/AuthService");
 
 module.exports = function(config) {
   const service = new AuthService(config);

@@ -4,6 +4,9 @@
   "description": "Adamite auth service.",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "format": "prettier --print-width 120 --write \"**/*.js\""
+  },
   "dependencies": {
     "@adamite/relay": "https://github.com/adamitejs/relay.git",
     "@adamite/sdk": "https://github.com/adamitejs/sdk.git",
@@ -11,5 +14,8 @@
     "jsonwebtoken": "^8.5.1",
     "lowdb": "^1.0.0",
     "uuid": "^3.3.2"
+  },
+  "devDependencies": {
+    "prettier": "^1.17.0"
   }
 }
