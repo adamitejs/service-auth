@@ -5,6 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "test": "jest --passWithNoTests",
     "format": "prettier --print-width 120 --write \"**/*.js\""
   },
   "dependencies": {
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "husky": "^2.2.0",
+    "jest": "^24.7.1",
     "prettier": "^1.17.0",
     "pretty-quick": "^1.10.0"
   },
@@ -24,5 +26,12 @@
     "hooks": {
       "pre-commit": "pretty-quick --staged"
     }
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "coverageDirectory": "./coverage/",
+    "collectCoverage": true
   }
 }
