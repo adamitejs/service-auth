@@ -23,38 +23,42 @@ class AuthService {
   }
 
   registerCommands() {
-    this.server.command("auth.loginWithEmailAndPassword", async (client, args, callback) => {
-      try {
-        const { email, password } = args;
-        const users = this.db.get("users");
-        const user = users.find(u => u.email === email).value();
+    this.server.command(
+      "auth.loginWithEmailAndPassword",
+      async (client, args, callback) => {
+        try {
+          const { email, password } = args;
+          const users = this.db.get("users");
+          const user = users.find(u => u.email === email).value();
 
-        if (!user) {
-          throw new Error("Invalid email or password.");
+          if (!user) {
+            throw new Error("Invalid email or password.");
+          }
+
+          if (user.disabled) {
+            throw new Error("User is disabled.");
+          }
+
+          if (!(await bcrypt.compare(password, user.password))) {
+            throw new Error("Invalid email or password.");
+          }
+
+          const token = jwt.sign(
+            {
+              sub: user.id,
+              email: user.email
+            },
+            this.config.auth.secret,
+            { expiresIn: "1d" }
+          );
+
+          callback({ error: false, token });
+        } catch (err) {
+          console.error(err);
+          callback({ error: err.message });
         }
-
-        if (user.disabled) {
-          throw new Error("User is disabled.");
-        }
-
-        if (!(await bcrypt.compare(password, user.password))) {
-          throw new Error("Invalid email or password.");
-        }
-
-        const token = jwt.sign(
-          {
-            sub: user.id,
-            email: user.email
-          },
-          this.config.auth.secret,
-          { expiresIn: "1d" }
-        );
-
-        callback({ error: false, token });
-      } catch (err) {
-        callback({ error: err.message });
       }
-    });
+    );
 
     this.server.command("auth.createUser", async (client, args, callback) => {
       try {
@@ -81,6 +85,7 @@ class AuthService {
 
         callback({ error: false, token });
       } catch (err) {
+        console.error(err);
         callback({ error: err.message });
       }
     });
@@ -90,6 +95,7 @@ class AuthService {
         const data = jwt.verify(args.token, this.config.auth.secret);
         callback({ error: false, data });
       } catch (err) {
+        console.error(err);
         callback({ error: err.message });
       }
     });
@@ -104,7 +110,8 @@ class AuthService {
       .get("users")
       .find(u => u.email === email)
       .value();
-    if (!!user) throw new Error("A user with that email address already exists.");
+    if (!!user)
+      throw new Error("A user with that email address already exists.");
   }
 }
 
