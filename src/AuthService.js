@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const uuid = require("uuid");
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
-const { server } = require("@adamite/relay");
+const server = require("@adamite/relay-server");
 const jwt = require("jsonwebtoken");
 const AuthCommands = require("./AuthCommands");
 
