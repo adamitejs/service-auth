@@ -3,14 +3,17 @@ const bcrypt = require("bcrypt");
 const uuid = require("uuid");
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
-const { server } = require("@adamite/relay");
+const server = require("@adamite/relay-server").default;
 const jwt = require("jsonwebtoken");
 const AuthCommands = require("./AuthCommands");
 
 class AuthService {
   constructor(config) {
     this.config = config;
-    this.server = server({ apiUrl: "http://localhost:9000", port: 9002 });
+    this.server = server(
+      { apiUrl: "http://localhost:9000", port: 9002 },
+      this.config
+    );
     this.commands = new AuthCommands(this);
     this.initializeDatabase();
     this.registerCommands();
