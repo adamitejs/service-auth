@@ -9,8 +9,8 @@
     "format": "prettier --print-width 120 --write \"**/*.js\""
   },
   "dependencies": {
-    "@adamite/relay-server": "file:../relay-server",
-    "@adamite/sdk": "file:../sdk",
+    "@adamite/relay-server": "https://github.com/adamitejs/relay-server.git",
+    "@adamite/sdk": "https://github.com/adamitejs/sdk.git",
     "bcrypt": "^3.0.6",
     "jsonwebtoken": "^8.5.1",
     "lowdb": "^1.0.0",
