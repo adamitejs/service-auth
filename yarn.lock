@@ -2,24 +2,27 @@
 # yarn lockfile v1
 
 
-"@adamite/relay-client@file:../relay-client":
+"@adamite/relay-client@https://github.com/adamitejs/relay-client.git":
   version "0.1.0"
+  resolved "https://github.com/adamitejs/relay-client.git#4ff2b2f0b5aadcffaa16c332512ba06c608ef747"
   dependencies:
     querystring "^0.2.0"
     socket.io-client "^2.2.0"
     uws "10.148.1"
 
-"@adamite/relay-server@file:../relay-server":
+"@adamite/relay-server@https://github.com/adamitejs/relay-server.git":
   version "0.1.0"
+  resolved "https://github.com/adamitejs/relay-server.git#3c89742e8acab916baf85d45061755967393981b"
   dependencies:
     jsonwebtoken "^8.5.1"
     node-fetch "^2.3.0"
     socket.io "^2.2.0"
 
-"@adamite/sdk@file:../sdk":
+"@adamite/sdk@https://github.com/adamitejs/sdk.git":
   version "0.1.0"
+  resolved "https://github.com/adamitejs/sdk.git#c5bc5865a9296b548fc5100b4336dc59e05915b7"
   dependencies:
-    "@adamite/relay-client" "file:../../../Library/Caches/Yarn/v4/npm-@adamite-sdk-0.1.0-dd538604-3fd6-4241-8d35-41a061dba48b-1558219077842/node_modules/@adamite/relay-client"
+    "@adamite/relay-client" "https://github.com/adamitejs/relay-client.git"
     "@types/jsonwebtoken" "^8.3.2"
     jsonwebtoken "^8.5.1"
     lodash "^4.17.11"
