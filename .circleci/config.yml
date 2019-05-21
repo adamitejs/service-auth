@@ -11,7 +11,7 @@ jobs: # a collection of steps
             - yarn-packages-{{ checksum "yarn.lock" }}
       - run:
           name: Install Dependencies
-          command: yarn install --frozen-lockfile
+          command: yarn install --frozen-lockfile --skip-integrity-check
 
       - save_cache:
           name: Save Yarn Package Cache
