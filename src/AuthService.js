@@ -10,10 +10,7 @@ const AuthCommands = require("./AuthCommands");
 class AuthService {
   constructor(config) {
     this.config = config;
-    this.server = server(
-      { apiUrl: "http://localhost:9000", port: 9002 },
-      this.config
-    );
+    this.server = server({ apiUrl: "http://localhost:9000", port: 9002 }, this.config);
     this.commands = new AuthCommands(this);
     this.initializeDatabase();
     this.registerCommands();
@@ -26,42 +23,39 @@ class AuthService {
   }
 
   registerCommands() {
-    this.server.command(
-      "auth.loginWithEmailAndPassword",
-      async (client, args, callback) => {
-        try {
-          const { email, password } = args;
-          const users = this.db.get("users");
-          const user = users.find(u => u.email === email).value();
+    this.server.command("auth.loginWithEmailAndPassword", async (client, args, callback) => {
+      try {
+        const { email, password } = args;
+        const users = this.db.get("users");
+        const user = users.find(u => u.email === email).value();
 
-          if (!user) {
-            throw new Error("Invalid email or password.");
-          }
-
-          if (user.disabled) {
-            throw new Error("User is disabled.");
-          }
-
-          if (!(await bcrypt.compare(password, user.password))) {
-            throw new Error("Invalid email or password.");
-          }
-
-          const token = jwt.sign(
-            {
-              sub: user.id,
-              email: user.email
-            },
-            this.config.auth.secret,
-            { expiresIn: "1d" }
-          );
-
-          callback({ error: false, token });
-        } catch (err) {
-          console.error(err);
-          callback({ error: err.message });
+        if (!user) {
+          throw new Error("Invalid email or password.");
         }
+
+        if (user.disabled) {
+          throw new Error("User is disabled.");
+        }
+
+        if (!(await bcrypt.compare(password, user.password))) {
+          throw new Error("Invalid email or password.");
+        }
+
+        const token = jwt.sign(
+          {
+            sub: user.id,
+            email: user.email
+          },
+          this.config.auth.secret,
+          { expiresIn: "1d" }
+        );
+
+        callback({ error: false, token });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
       }
-    );
+    });
 
     this.server.command("auth.createUser", async (client, args, callback) => {
       try {
@@ -102,10 +96,27 @@ class AuthService {
         callback({ error: err.message });
       }
     });
+
+    this.server.command("auth.admin.getUsers", (client, args, callback) => {
+      try {
+        this._verifyAdminAccess(client);
+        const users = this.db.get("users").map(u => {
+          return { ...u, password: undefined };
+        });
+        callback({ error: false, users });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
+      }
+    });
   }
 
   start() {
     this.server.start();
+  }
+
+  _verifyAdminAccess(client) {
+    if (!client.socket.request._query.secret) throw new Error("Admin commands require secret authentication.");
   }
 
   _checkForExistingUser(email) {
@@ -113,8 +124,7 @@ class AuthService {
       .get("users")
       .find(u => u.email === email)
       .value();
-    if (!!user)
-      throw new Error("A user with that email address already exists.");
+    if (!!user) throw new Error("A user with that email address already exists.");
   }
 }
 
