@@ -50,6 +50,13 @@ class AuthService {
           { expiresIn: "1d" }
         );
 
+        users
+          .find({ id: user.id })
+          .update("loginCount", n => (n || 0) + 1)
+          .set("lastLoginAt", Date.now())
+          .set("lastLoginIP", client.socket.handshake.address)
+          .write();
+
         callback({ error: false, token });
       } catch (err) {
         console.error(err);
@@ -65,7 +72,11 @@ class AuthService {
         const user = {
           id: uuid.v4(),
           email: args.email,
-          password: await bcrypt.hash(password, 10)
+          password: await bcrypt.hash(password, 10),
+          createdAt: Date.now(),
+          lastLoginAt: Date.now(),
+          lastLoginIP: client.socket.handshake.address,
+          loginCount: args.bypassLogin ? 0 : 1
         };
 
         const users = this.db.get("users");
@@ -104,6 +115,95 @@ class AuthService {
           return { ...u, password: undefined };
         });
         callback({ error: false, users });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
+      }
+    });
+
+    this.server.command("auth.admin.getUserInfo", (client, args, callback) => {
+      try {
+        this._verifyAdminAccess(client);
+
+        const userInfo = this.db
+          .get("users")
+          .find({ id: args.userId })
+          .value();
+
+        callback({
+          error: false,
+          userInfo: {
+            ...userInfo,
+            password: undefined
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
+      }
+    });
+
+    this.server.command("auth.admin.setUserEmail", (client, args, callback) => {
+      try {
+        this._verifyAdminAccess(client);
+
+        this.db
+          .get("users")
+          .find({ id: args.userId })
+          .set("email", args.email)
+          .write();
+
+        callback({ error: false });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
+      }
+    });
+
+    this.server.command("auth.admin.setUserPassword", async (client, args, callback) => {
+      try {
+        this._verifyAdminAccess(client);
+
+        this.db
+          .get("users")
+          .find({ id: args.userId })
+          .set("password", await bcrypt.hash(args.password, 10))
+          .write();
+
+        callback({ error: false });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
+      }
+    });
+
+    this.server.command("auth.admin.setUserDisabled", (client, args, callback) => {
+      try {
+        this._verifyAdminAccess(client);
+
+        this.db
+          .get("users")
+          .find({ id: args.userId })
+          .set("disabled", args.disabled)
+          .write();
+
+        callback({ error: false });
+      } catch (err) {
+        console.error(err);
+        callback({ error: err.message });
+      }
+    });
+
+    this.server.command("auth.admin.deleteUser", (client, args, callback) => {
+      try {
+        this._verifyAdminAccess(client);
+
+        this.db
+          .get("users")
+          .remove({ id: args.userId })
+          .write();
+
+        callback({ error: false });
       } catch (err) {
         console.error(err);
         callback({ error: err.message });
