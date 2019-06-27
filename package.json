@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "test": "jest --passWithNoTests",
-    "format": "prettier --print-width 120 --write \"**/*.js\""
+    "format": "prettier --print-width 127 --write \"**/*.js\""
   },
   "dependencies": {
     "@adamite/relay-server": "latest",
