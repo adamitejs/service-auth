@@ -5,8 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "jest --passWithNoTests",
-    "format": "prettier --print-width 127 --write \"**/*.js\""
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@adamite/relay-server": "latest",
