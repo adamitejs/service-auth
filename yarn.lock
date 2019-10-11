@@ -21,7 +21,7 @@
     node-fetch "^2.3.0"
     socket.io "^2.2.0"
 
-"@adamite/sdk@latest":
+"@adamite/sdk@^0.1.0-beta.0":
   version "0.1.0-beta.0"
   resolved "https://registry.yarnpkg.com/@adamite/sdk/-/sdk-0.1.0-beta.0.tgz#a85f893ba576983946ed924eafbed562432a480a"
   integrity sha512-ZCX3mBCwY2MYvN//+h7EVR8ecMV34gQLBhcOciQhvKB/Svi8nv2rcDz6WDkf4iCl4m5by8mNrjjQdAHtRKdc1g==
