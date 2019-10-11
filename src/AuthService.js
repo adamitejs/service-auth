@@ -10,7 +10,10 @@ const AuthCommands = require("./AuthCommands");
 class AuthService {
   constructor(config) {
     this.config = config;
-    this.server = server({ apiUrl: "http://localhost:9000", port: 9002 }, this.config);
+    this.server = server(
+      { name: "auth", apiUrl: this.config.apiUrl || "http://localhost:9000", port: this.config.port || 9002 },
+      this.config
+    );
     this.commands = new AuthCommands(this);
     this.initializeDatabase();
     this.registerCommands();
@@ -46,7 +49,7 @@ class AuthService {
             sub: user.id,
             email: user.email
           },
-          this.config.auth.secret,
+          this.config.secret,
           { expiresIn: "1d" }
         );
 
@@ -87,7 +90,7 @@ class AuthService {
             sub: user.id,
             email: user.email
           },
-          this.config.auth.secret,
+          this.config.secret,
           { expiresIn: "1d" }
         );
 
@@ -100,7 +103,7 @@ class AuthService {
 
     this.server.command("auth.validateToken", (client, args, callback) => {
       try {
-        const data = jwt.verify(args.token, this.config.auth.secret);
+        const data = jwt.verify(args.token, this.config.secret);
         callback({ error: false, data });
       } catch (err) {
         console.error(err);
