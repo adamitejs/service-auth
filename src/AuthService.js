@@ -8,11 +8,13 @@ const jwt = require("jsonwebtoken");
 const AuthCommands = require("./AuthCommands");
 
 class AuthService {
-  constructor(config) {
+  constructor(config, rootConfig) {
     this.config = config;
+    this.rootConfig = rootConfig;
     this.server = server(
       { name: "auth", apiUrl: this.config.apiUrl || "http://localhost:9000", port: this.config.port || 9002 },
-      this.config
+      this.config,
+      this.rootConfig
     );
     this.commands = new AuthCommands(this);
     this.initializeDatabase();
