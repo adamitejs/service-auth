@@ -11,10 +11,10 @@
     socket.io-client "^2.2.0"
     uws "10.148.1"
 
-"@adamite/relay-server@^0.1.0-beta.3":
-  version "0.1.0-beta.3"
-  resolved "https://registry.yarnpkg.com/@adamite/relay-server/-/relay-server-0.1.0-beta.3.tgz#916ba12c1b5085dc6f4e377f52689ef28e218c0d"
-  integrity sha512-OXEwPCDaBVqLafYxh33lfgfck4OHu+ZY3j27nqRaazahoUMrchZGBTPGlVi8W/WWHEiiCRsJT9GLXswfNi31gA==
+"@adamite/relay-server@^1.0.0-beta.0":
+  version "1.0.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@adamite/relay-server/-/relay-server-1.0.0-beta.0.tgz#c9ae628cc77baf1fcd9d82f30fe21e101513a8ca"
+  integrity sha512-3lMBXBfp0n7DzXT1acmxHhNXJwtyiEDiK4OkP9UnU8qe7aJcsfCCEzz5iGEuHuO1LdvcLAWNQMeiHLLZH4cbag==
   dependencies:
     express "^4.17.0"
     jsonwebtoken "^8.5.1"
