@@ -3,19 +3,14 @@ const bcrypt = require("bcrypt");
 const uuid = require("uuid");
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
-const server = require("@adamite/relay-server").default;
 const jwt = require("jsonwebtoken");
 const AuthCommands = require("./AuthCommands");
 
 class AuthService {
-  constructor(config, rootConfig) {
+  constructor(server, config, rootConfig) {
     this.config = config;
     this.rootConfig = rootConfig;
-    this.server = server(
-      { name: "auth", apiUrl: this.config.apiUrl || "http://localhost:9000", port: this.config.port || 9002 },
-      this.config,
-      this.rootConfig
-    );
+    this.server = server;
     this.commands = new AuthCommands(this);
     this.initializeDatabase();
     this.registerCommands();
@@ -28,196 +23,140 @@ class AuthService {
   }
 
   registerCommands() {
-    this.server.command("auth.loginWithEmailAndPassword", async (client, args, callback) => {
-      try {
-        const { email, password } = args;
-        const users = this.db.get("users");
-        const user = users.find(u => u.email === email).value();
+    this.server.command("auth.loginWithEmailAndPassword", async (client, args) => {
+      const { email, password } = args;
+      const users = this.db.get("users");
+      const user = users.find(u => u.email === email).value();
 
-        if (!user) {
-          throw new Error("Invalid email or password.");
+      if (!user) {
+        throw new Error("Invalid email or password.");
+      }
+
+      if (user.disabled) {
+        throw new Error("User is disabled.");
+      }
+
+      if (!(await bcrypt.compare(password, user.password))) {
+        throw new Error("Invalid email or password.");
+      }
+
+      const token = jwt.sign(
+        {
+          sub: user.id,
+          email: user.email
+        },
+        this.config.secret,
+        { expiresIn: "1d" }
+      );
+
+      users
+        .find({ id: user.id })
+        .update("loginCount", n => (n || 0) + 1)
+        .set("lastLoginAt", Date.now())
+        .set("lastLoginIP", client.socket.handshake.address)
+        .write();
+
+      return { token };
+    });
+
+    this.server.command("auth.createUser", async (client, args) => {
+      const { email, password } = args;
+      this._checkForExistingUser(email);
+
+      const user = {
+        id: uuid.v4(),
+        email: args.email,
+        password: await bcrypt.hash(password, 10),
+        createdAt: Date.now(),
+        lastLoginAt: Date.now(),
+        lastLoginIP: client.socket.handshake.address,
+        loginCount: args.bypassLogin ? 0 : 1
+      };
+
+      const users = this.db.get("users");
+      users.push(user).write();
+
+      const token = jwt.sign(
+        {
+          sub: user.id,
+          email: user.email
+        },
+        this.config.secret,
+        { expiresIn: "1d" }
+      );
+
+      return { token };
+    });
+
+    this.server.command("auth.validateToken", (client, args) => {
+      const data = jwt.verify(args.token, this.config.secret);
+      return { data };
+    });
+
+    this.server.command("auth.admin.getUsers", (client, args) => {
+      this._verifyAdminAccess(client);
+      const users = this.db.get("users").map(u => {
+        return { ...u, password: undefined };
+      });
+      return { users };
+    });
+
+    this.server.command("auth.admin.getUserInfo", (client, args) => {
+      this._verifyAdminAccess(client);
+
+      const userInfo = this.db
+        .get("users")
+        .find({ id: args.userId })
+        .value();
+
+      return {
+        userInfo: {
+          ...userInfo,
+          password: undefined
         }
-
-        if (user.disabled) {
-          throw new Error("User is disabled.");
-        }
-
-        if (!(await bcrypt.compare(password, user.password))) {
-          throw new Error("Invalid email or password.");
-        }
-
-        const token = jwt.sign(
-          {
-            sub: user.id,
-            email: user.email
-          },
-          this.config.secret,
-          { expiresIn: "1d" }
-        );
-
-        users
-          .find({ id: user.id })
-          .update("loginCount", n => (n || 0) + 1)
-          .set("lastLoginAt", Date.now())
-          .set("lastLoginIP", client.socket.handshake.address)
-          .write();
-
-        callback({ error: false, token });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
+      };
     });
 
-    this.server.command("auth.createUser", async (client, args, callback) => {
-      try {
-        const { email, password } = args;
-        this._checkForExistingUser(email);
+    this.server.command("auth.admin.setUserEmail", (client, args) => {
+      this._verifyAdminAccess(client);
 
-        const user = {
-          id: uuid.v4(),
-          email: args.email,
-          password: await bcrypt.hash(password, 10),
-          createdAt: Date.now(),
-          lastLoginAt: Date.now(),
-          lastLoginIP: client.socket.handshake.address,
-          loginCount: args.bypassLogin ? 0 : 1
-        };
-
-        const users = this.db.get("users");
-        users.push(user).write();
-
-        const token = jwt.sign(
-          {
-            sub: user.id,
-            email: user.email
-          },
-          this.config.secret,
-          { expiresIn: "1d" }
-        );
-
-        callback({ error: false, token });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
+      this.db
+        .get("users")
+        .find({ id: args.userId })
+        .set("email", args.email)
+        .write();
     });
 
-    this.server.command("auth.validateToken", (client, args, callback) => {
-      try {
-        const data = jwt.verify(args.token, this.config.secret);
-        callback({ error: false, data });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
+    this.server.command("auth.admin.setUserPassword", async (client, args) => {
+      this._verifyAdminAccess(client);
+
+      this.db
+        .get("users")
+        .find({ id: args.userId })
+        .set("password", await bcrypt.hash(args.password, 10))
+        .write();
     });
 
-    this.server.command("auth.admin.getUsers", (client, args, callback) => {
-      try {
-        this._verifyAdminAccess(client);
-        const users = this.db.get("users").map(u => {
-          return { ...u, password: undefined };
-        });
-        callback({ error: false, users });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
+    this.server.command("auth.admin.setUserDisabled", (client, args) => {
+      this._verifyAdminAccess(client);
+
+      this.db
+        .get("users")
+        .find({ id: args.userId })
+        .set("disabled", args.disabled)
+        .write();
     });
 
-    this.server.command("auth.admin.getUserInfo", (client, args, callback) => {
-      try {
-        this._verifyAdminAccess(client);
+    this.server.command("auth.admin.deleteUser", (client, args) => {
+      this._verifyAdminAccess(client);
 
-        const userInfo = this.db
-          .get("users")
-          .find({ id: args.userId })
-          .value();
+      this.db
+        .get("users")
+        .remove({ id: args.userId })
+        .write();
 
-        callback({
-          error: false,
-          userInfo: {
-            ...userInfo,
-            password: undefined
-          }
-        });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
+      callback({ error: false });
     });
-
-    this.server.command("auth.admin.setUserEmail", (client, args, callback) => {
-      try {
-        this._verifyAdminAccess(client);
-
-        this.db
-          .get("users")
-          .find({ id: args.userId })
-          .set("email", args.email)
-          .write();
-
-        callback({ error: false });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
-    });
-
-    this.server.command("auth.admin.setUserPassword", async (client, args, callback) => {
-      try {
-        this._verifyAdminAccess(client);
-
-        this.db
-          .get("users")
-          .find({ id: args.userId })
-          .set("password", await bcrypt.hash(args.password, 10))
-          .write();
-
-        callback({ error: false });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
-    });
-
-    this.server.command("auth.admin.setUserDisabled", (client, args, callback) => {
-      try {
-        this._verifyAdminAccess(client);
-
-        this.db
-          .get("users")
-          .find({ id: args.userId })
-          .set("disabled", args.disabled)
-          .write();
-
-        callback({ error: false });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
-    });
-
-    this.server.command("auth.admin.deleteUser", (client, args, callback) => {
-      try {
-        this._verifyAdminAccess(client);
-
-        this.db
-          .get("users")
-          .remove({ id: args.userId })
-          .write();
-
-        callback({ error: false });
-      } catch (err) {
-        console.error(err);
-        callback({ error: err.message });
-      }
-    });
-  }
-
-  start() {
-    this.server.start();
   }
 
   _verifyAdminAccess(client) {
