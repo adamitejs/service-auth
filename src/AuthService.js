@@ -93,6 +93,84 @@ class AuthService {
       return { data };
     });
 
+    this.server.command("auth.changeEmail", async (client, args) => {
+      if (!client.auth.isLoggedIn) {
+        throw new Error("Can't change email because the user is not logged in.");
+      }
+
+      const { password, email } = args;
+      const users = this.db.get("users");
+      const user = users.find(u => u.id === client.auth.data.sub).value();
+
+      if (!user) {
+        throw new Error("Invalid user ID.");
+      }
+
+      if (user.disabled) {
+        throw new Error("User is disabled.");
+      }
+
+      if (!(await bcrypt.compare(password, user.password))) {
+        throw new Error("Invalid password.");
+      }
+
+      this.db
+        .get("users")
+        .find({ id: client.auth.data.sub })
+        .set("email", email)
+        .write();
+
+      const token = jwt.sign(
+        {
+          sub: user.id,
+          email: email
+        },
+        this.config.secret,
+        { expiresIn: "1d" }
+      );
+
+      return { token };
+    });
+
+    this.server.command("auth.changePassword", async (client, args) => {
+      if (!client.auth.isLoggedIn) {
+        throw new Error("Can't change password because the user is not logged in.");
+      }
+
+      const { oldPassword, newPassword } = args;
+      const users = this.db.get("users");
+      const user = users.find(u => u.id === client.auth.data.sub).value();
+
+      if (!user) {
+        throw new Error("Invalid user ID.");
+      }
+
+      if (user.disabled) {
+        throw new Error("User is disabled.");
+      }
+
+      if (!(await bcrypt.compare(oldPassword, user.password))) {
+        throw new Error("Invalid old password.");
+      }
+
+      this.db
+        .get("users")
+        .find({ id: client.auth.data.sub })
+        .set("password", await bcrypt.hash(newPassword, 10))
+        .write();
+
+      const token = jwt.sign(
+        {
+          sub: user.id,
+          email: user.email
+        },
+        this.config.secret,
+        { expiresIn: "1d" }
+      );
+
+      return { token };
+    });
+
     this.server.command("auth.admin.getUsers", (client, args) => {
       this._verifyAdminAccess(client);
       const users = this.db.get("users").map(u => {
